@@ -2,6 +2,7 @@ import * as jwt from "jsonwebtoken";
 
 interface AuthenticationData {
   id: string;
+  email: string;
 }
 export default class Authenticator {
   private static EXPIRES_IN = "10min";
@@ -10,6 +11,7 @@ export default class Authenticator {
     const token = jwt.sign(
       {
         id: input.id,
+        email: input.email
       },
       process.env.JWT_KEY as string,
       {
@@ -24,6 +26,7 @@ export default class Authenticator {
     const payload = jwt.verify(token, process.env.JWT_KEY as string) as any;
     const result = {
       id: payload.id,
+      email: payload.email
     };
     return result;
   }
