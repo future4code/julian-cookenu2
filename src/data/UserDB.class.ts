@@ -1,59 +1,46 @@
 import knex from "knex";
 import BaseDB from "./BaseDB.class";
-import { USER_ROLES } from "../services/Authenticator.class"
-import { table } from "console";
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  password: string;
+}
 
 export default class UserDB extends BaseDB {
+  private static TABLE_NAME = "CknUser";
 
-  private static TABLE_NAME = "UserA";
-
-  public createUser = async (
-    id: string,
-    email: string,
-    password: string,
-    role: USER_ROLES
-  ): Promise<void> => {
-    await this.getConnection()
-      .insert({
-        id,
-        email,
-        password,
-        role
-      })
-      .into(UserDB.TABLE_NAME);
-
-      BaseDB.destroyConnection()
-  };
-
-  public getUserByEmail = async (email: string): Promise<any> => {
-    const result = await this.getConnection()
-      .select("*")
-      .from(UserDB.TABLE_NAME)
-      .where({ email });
-
-      BaseDB.destroyConnection();
-
-    return result[0];
-  };
-
-  public getUserById = async (id: string): Promise<any> => {
-    const result = await this.getConnection()
-      .select("*")
-      .from(UserDB.TABLE_NAME)
-      .where({ id });
-
-    BaseDB.destroyConnection();
-    return result[0];
-  };
-
-  public deleteUser = async (id: string): Promise<void> => {
+  public createUser = async (user: User): Promise<void> => {
     await this.getConnection().raw(
       `
-      DELETE FROM ${UserDB.TABLE_NAME}
-      WHERE id = "${id}";
+      INSERT INTO ${UserDB.TABLE_NAME}(id, email, name, password)
+      VALUES ("${user.id}", "${user.email}", "${user.name}", "${user.password}");
       `
-    )
+    );
 
-    BaseDB.destroyConnection();
-  } 
+    await BaseDB.destroyConnection();
+  };
+
+  public getByEmail = async (email: string): Promise<any> => {
+    const result = await this.getConnection().raw(
+      `
+      SELECT *
+      FROM CknUser
+      WHERE email = "${email}";
+      `
+    );
+
+    return result[0][0];
+  };
+
+  public getById = async (id: string): Promise<any> => {
+    const result = await this.getConnection().raw(`
+     SELECT *
+     FROM CknUser
+      WHERE id = "${id}";
+    `);
+
+    return result[0][0];
+  };
 }
