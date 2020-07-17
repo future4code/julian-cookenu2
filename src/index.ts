@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
+import moment from "moment";
 import { AddressInfo } from "net";
 import IdGenerator from "./services/IdGen.class";
 import UserDB, { User } from "./data/UserDB.class";
@@ -109,9 +110,7 @@ app.post("/login", async (req: Request, res: Response) => {
   }
 });
 
-app.get(
-  "/user/profile",
-  async (req: Request, res: Response): Promise<any> => {
+app.get("/user/profile", async (req: Request, res: Response): Promise<any> => {
     try {
       if (!req.headers.authorization) {
         throw new Error("Unauthorized");
@@ -200,4 +199,117 @@ app.post(
       });
     }
   }
+);
+
+app.get(
+  "/recipe/:id",
+  async (req: Request, res: Response): Promise<any> => {
+    try {
+      if (!req.headers.authorization) {
+        throw new Error("Unauthorized");
+      }
+      if (!req.params.id) {
+        throw new Error("Missing params");
+      }
+
+      const recipeDB = new RecipesDB();
+      const recipe = await recipeDB.getById(req.params.id); 
+
+      res.status(200).send({
+        "id": `${recipe.id}`,
+        "title": `${recipe.title}`,
+        "description": `${recipe.description}`,
+        "createdAt": `${moment(recipe.date, 'YYYY-MM-DD').format('DD/MM/YYYY')}`,
+      })
+    } catch (err) {
+      res.status(400).send({
+        message: err.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/user/follow",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.headers.authorization) {
+        throw new Error("Unauthorized");
+      }
+      if (!req.body.userToFollowId) {
+        throw new Error("Missing fields");
+      }
+
+      const authenticator = new Authenticator();
+      const userData = authenticator.getData(req.headers.authorization);
+      
+      const id = userData.id;
+      const toFollow = req.body.userToFollowId;
+
+      const userDB = new UserDB();
+      await userDB.follow(id, toFollow);
+
+      res.status(200).send({
+        message: "Followed successfully"
+      })
+    } catch (err) {
+      res.status(400).send({
+        message: err.message,
+      });
+    }
+  }
+);
+
+app.post(
+  "/user/unfollow",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      if (!req.headers.authorization) {
+        throw new Error("Unauthorized");
+      }
+      if (!req.body.userToUnfollowId) {
+        throw new Error("Missing fields");
+      }
+
+      const authenticator = new Authenticator();
+      const userData = authenticator.getData(req.headers.authorization);
+      
+      const id = userData.id;
+      const toUnfollow = req.body.userToUnfollowId;
+
+      const userDB = new UserDB();
+      await userDB.unfollow(id, toUnfollow);
+
+      res.status(200).send({
+        message: "Unfollowed successfully"
+      })
+    } catch (err) {
+      res.status(400).send({
+        message: err.message,
+      });
+    }
+  }
+);
+
+app.get("/feed", async (req: Request, res: Response): Promise<any> => {
+  try {
+    if (!req.headers.authorization) {
+      throw new Error("Unauthorized");
+    }
+
+    const authenticator = new Authenticator();
+    const data = authenticator.getData(req.headers.authorization);
+
+    const userDB = new UserDB();
+    const feed = await userDB.getFeed(data.id); 
+
+    res.status(200).send({
+      "recipes": feed
+    })
+  } catch (err) {
+    res.status(400).send({
+      message: err.message,
+    });
+  }
+}
 );
